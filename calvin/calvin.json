@@ -1,0 +1,13 @@
+{
+    "id": "calvin_mod",
+    "name": "Calvin Mod",
+    "author": ["Dad"],
+    "description": "Mult mod for Calvin.",
+    "prefix": "calvin",
+    "main_file": "calvin.lua",
+    "badge_colour": "aa4740",
+    "dependencies": [
+        "Steamodded (>=1.0.0~ALPHA-1225a)"
+    ],
+    "version": "1.0.0"
+}
