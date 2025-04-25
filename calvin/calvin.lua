@@ -50,10 +50,10 @@ SMODS.Joker {
                 Multiple variables can be used in one space, as long as you separate them with a comma. {C:attention, X:chips, s:1.3} would be the yellow attention color, with a blue chips-colored background,, and 1.3 times the scale of other text.
                 You can find the vanilla joker descriptions and names as well as several other things in the localization files.
                 ]]
-			"This Joker gains {C:mult}+#1#{} Mult",
-			"per {C:attention}consecutive{} hand",
-			"played with {C:attention}5 scoring cards{}",
-			"{C:inactive}(Currently {C:mult}+#1#{C:inactive} Mult)",
+			"This Joker gains {X:mult,C:white} X#2# {} Mult",
+			"when hand played with",
+			"more than {C:attention}5 triggered cards{}",
+			"{C:inactive}(Currently {X:mult,C:white} X#1# {C:inactive} Mult)",
 		}
 	},
 	--[[
@@ -62,63 +62,58 @@ SMODS.Joker {
 		If you want to change the static value, you'd only change this number, instead
 		of going through all your code to change each instance individually.
 		]]
-	config = { extra = { mult = 0, mult_gain = 5 } },
+	config = { extra = { xmult = 1, xmult_gain = 0.25 } },
     discovered = true,
     unlocked = true,
 	-- loc_vars gives your loc_text variables to work with, in the format of #n#, n being the variable in order.
 	-- #1# is the first variable in vars, #2# the second, #3# the third, and so on.
 	-- It's also where you'd add to the info_queue, which is where things like the negative tooltip are.
 	loc_vars = function(self, info_queue, card)
-		return { vars = { card.ability.extra.mult, card.ability.extra.mult_gain } }
+		return { vars = { card.ability.extra.xmult, card.ability.extra.xmult_gain } }
 	end,
 	-- Sets rarity. 1 common, 2 uncommon, 3 rare, 4 legendary.
-	rarity = 1,
+	rarity = 2,
 	-- Which atlas key to pull from.
 	atlas = 'calvin',
 	-- This card's position on the atlas, starting at {x=0,y=0} for the very top left.
 	pos = { x = 0, y = 0 },
 	-- Cost of card in shop.
 	cost = 0,
-    scored_cards = 0,
+    triggered = false,
+    triggered_cards = 0,
 	-- The functioning part of the joker, looks at context to decide what step of scoring the game is on, and then gives a 'return' value if something activates.
 	calculate = function(self, card, context)
 
         if context.before then
-            local scored_cards = 0
-            for i=1, #context.scoring_hand do
-                if not context.scoring_hand[i].debuff then
-                    scored_cards = scored_cards + 1
-                end
-            end
-            sendDebugMessage(scored_cards .. " scored cards")
-            if scored_cards >= 5 then
-                card.ability.extra.mult = card.ability.extra.mult + card.ability.extra.mult_gain
+            self.triggered = false
+            self.triggered_cards = 0
+        end
+
+        if context.individual
+        and context.cardarea == G.play
+        and not card.debuff
+        and not self.triggered
+        and not context.blueprint then
+            self.triggered_cards = self.triggered_cards + 1
+            if self.triggered_cards > 5 then
+                self.triggered = true
+                card.ability.extra.xmult = card.ability.extra.xmult + card.ability.extra.xmult_gain
                 return {
                     message = 'Upgraded!',
                     colour = G.C.MULT,
                     card = card
                 }
-            elseif card.ability.extra.mult > 0 then
-                card.ability.extra.mult = 0
-                return {
-                    message = 'Reset',
-                    colour = G.C.BLACK,
-                    card = card
-                }
             end
         end
 
-		-- Tests if context.joker_main == true.
-		-- joker_main is a SMODS specific thing, and is where the effects of jokers that just give +stuff in the joker area area triggered, like Joker giving +Mult, Cavendish giving XMult, and Bull giving +Chips.
-		if context.joker_main
-        and card.ability.extra.mult > 0 then
+		if context.joker_main then
 			-- Tells the joker what to do. In this case, it pulls the value of mult from the config, and tells the joker to use that variable as the "mult_mod".
 			return {
-				mult_mod = card.ability.extra.mult,
+				Xmult_mod = card.ability.extra.mult,
 				-- This is a localize function. Localize looks through the localization files, and translates it. It ensures your mod is able to be translated. I've left it out in most cases for clarity reasons, but this one is required, because it has a variable.
 				-- This specifically looks in the localization table for the 'variable' category, specifically under 'v_dictionary' in 'localization/en-us.lua', and searches that table for 'a_mult', which is short for add mult.
 				-- In the localization file, a_mult = "+#1#". Like with loc_vars, the vars in this message variable replace the #1#.
-				message = localize { type = 'variable', key = 'a_mult', vars = { card.ability.extra.mult } }
+				message = localize { type = 'variable', key = 'a_xmult', vars = { card.ability.extra.xmult } }
 				-- Without this, the mult will stil be added, but it'll just show as a blank red square that doesn't have any text.
 			}
 		end
